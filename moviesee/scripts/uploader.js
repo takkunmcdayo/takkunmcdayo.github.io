@@ -1,37 +1,49 @@
 (function () {
   const input = document.getElementById('videoInput');
   const openBtn = document.getElementById('openPlayerBtn');
+  const dropZone = document.getElementById('dropZone');
 
   let objectUrl = null;
   let fileName = null;
 
-  // Enable the button only when a file is chosen
-  input.addEventListener('change', () => {
-    const file = input.files?.[0];
-    if (!file) {
-      openBtn.disabled = true;
-      return;
-    }
-    // Create Blob URL for the selected file
+  function handleFile(file) {
+    if (!file) return;
     if (objectUrl) URL.revokeObjectURL(objectUrl);
     objectUrl = URL.createObjectURL(file);
     fileName = file.name;
     openBtn.disabled = false;
+  }
+
+  // ファイル選択
+  input.addEventListener('change', () => {
+    handleFile(input.files?.[0]);
   });
 
-  openBtn.addEventListener('click', () => {
-    const file = input.files?.[0];
-    if (!file || !objectUrl) return;
+  // ドラッグ＆ドロップ
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
 
-    // Pass the Blob URL and filename via query parameters
-    const url = new URL(window.location.origin + window.location.pathname.replace('index.html', '') + 'player.html');
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files?.[0];
+    handleFile(file);
+  });
+
+  // プレイヤーへ遷移
+  openBtn.addEventListener('click', () => {
+    if (!objectUrl) return;
+    const url = new URL('player.html', window.location.href);
     url.searchParams.set('src', objectUrl);
     url.searchParams.set('name', fileName);
-
-    // Open the player page (same tab)
     window.location.href = url.toString();
   });
 
-  // Initially disabled
   openBtn.disabled = true;
 })();
