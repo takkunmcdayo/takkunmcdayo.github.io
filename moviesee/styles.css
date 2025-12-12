@@ -82,3 +82,18 @@ input[type="file"] {
   color: var(--muted);
   font-size: 0.95rem;
 }
+
+.drop-zone {
+  margin-top: 12px;
+  padding: 20px;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.drop-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(79,124,246,0.1);
+  color: var(--accent);
+}
