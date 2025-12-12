@@ -18,7 +18,6 @@ const statusText = document.getElementById('statusText');
 const percentText = document.getElementById('percent');
 const historyEl = document.getElementById('history');
 const downloadBtn = document.getElementById('downloadBtn');
-const actionBar = document.getElementById('actionBar');
 const toast = document.getElementById('toast');
 const logArea = document.getElementById('logArea');
 
@@ -43,6 +42,7 @@ function estimateTime(bytes){ const mb = bytes/(1024*1024); const sec = Math.max
 ['dragenter','dragover'].forEach(ev=> dropzone.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); dropzone.classList.add('dragover'); }));
 ['dragleave','drop'].forEach(ev=> dropzone.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); dropzone.classList.remove('dragover'); }));
 dropzone.addEventListener('drop', e=> { const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) handleFile(f); });
+dropzone.addEventListener('keydown', e=> { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
 
 /* 明示的選択 */
 selectBtn.addEventListener('click', ()=> fileInput.click());
@@ -60,74 +60,134 @@ previewBtn.addEventListener('click', ()=> {
   w.document.body.style.margin = '0'; w.document.body.appendChild(video);
 });
 
-/* アクションバーのボタン */
+/* ダウンロード */
+downloadBtn.addEventListener('click', ()=> {
+  if (!currentBlobUrl) return;
+  const a = document.createElement('a');
+  a.href = currentBlobUrl;
+  a.download = (currentFile ? currentFile.name.replace(/\.[^/.]+$/, '') : 'output') + '.mp3';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
+/* 変換ボタン */
 convertBtn.addEventListener('click', async ()=> {
   if (!currentFile || isConverting) return;
   isConverting = true;
   convertBtn.disabled = true;
+  clearBtn.disabled = true;
+  previewBtn.disabled = true;
   statusText.textContent = 'FFmpeg を読み込み中…';
-  try { await loadFFmpeg(); await runConversion(); }
-  catch(err){ console.error(err); logArea.hidden = false; logArea.textContent = 'エラー: ' + (err.message || err); showToast('変換中にエラーが発生しました'); statusText.textContent = 'エラー'; }
-  finally { isConverting = false; convertBtn.disabled = false; }
-});
-downloadBtn.addEventListener('click', ()=> {
-  if (!currentBlobUrl) return;
-  const a = document.createElement('a'); a.href = currentBlobUrl;
-  a.download = (currentFile ? currentFile.name.replace(/\.[^/.]+$/, '') : 'output') + '.mp3';
-  document.body.appendChild(a); a.click(); a.remove();
+  percentText.textContent = '0%';
+  progressEl.value = 0;
+  logArea.hidden = true;
+  try {
+    await loadFFmpeg();
+    await runConversion();
+  } catch (err) {
+    console.error(err);
+    logArea.hidden = false;
+    logArea.textContent = 'エラー: ' + (err.message || err);
+    showToast('変換中にエラーが発生しました');
+    statusText.textContent = 'エラー';
+  } finally {
+    isConverting = false;
+    convertBtn.disabled = false;
+    clearBtn.disabled = false;
+    previewBtn.disabled = false;
+  }
 });
 
-async function loadFFmpeg(){
+async function loadFFmpeg() {
   if (ffmpeg) return ffmpeg;
-  ffmpeg = createFFmpeg({ log:true, corePath:"https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js" });
-  ffmpeg.setProgress(({ ratio })=> {
-    const pct = Math.round(ratio*100);
-    progressEl.value = pct; percentText.textContent = pct + '%'; statusText.textContent = `変換中 ${pct}%`;
+  ffmpeg = createFFmpeg({
+    log: true,
+    corePath: "https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js"
+  });
+  ffmpeg.setProgress(({ ratio }) => {
+    const pct = Math.round(ratio * 100);
+    progressEl.value = pct;
+    percentText.textContent = pct + '%';
+    statusText.textContent = `変換中 ${pct}%`;
+  });
+  ffmpeg.setLogger(({ type, message }) => {
+    // ログを必要に応じて表示する場合はここを使う
   });
   await ffmpeg.load();
   return ffmpeg;
 }
 
-async function runConversion(){
+async function runConversion() {
   const inName = 'input' + getExtension(currentFile.name);
   const outName = 'output.mp3';
   statusText.textContent = 'ファイル読み込み中…';
   ffmpeg.FS('writeFile', inName, await fetchFile(currentFile));
   statusText.textContent = '変換コマンド実行中…';
-  const bitrate = bitrateSel.value; const sr = samplerateSel.value;
+  const bitrate = bitrateSel.value;
+  const sr = samplerateSel.value;
   await ffmpeg.run('-i', inName, '-vn', '-ab', bitrate, '-ar', sr, outName);
   statusText.textContent = '出力取得中…';
   const data = ffmpeg.FS('readFile', outName);
-  const mp3Blob = new Blob([data.buffer], { type:'audio/mpeg' });
+  const mp3Blob = new Blob([data.buffer], { type: 'audio/mpeg' });
   if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
   currentBlobUrl = URL.createObjectURL(mp3Blob);
-  downloadBtn.hidden = false; downloadBtn.disabled = false;
-  statusText.textContent = '完了'; progressEl.value = 100; percentText.textContent = '100%';
+  downloadBtn.hidden = false;
+  statusText.textContent = '完了';
+  progressEl.value = 100;
+  percentText.textContent = '100%';
   addHistoryItem(currentFile.name, currentBlobUrl, bitrate, sr);
   showToast('変換が完了しました');
 }
 
-function addHistoryItem(origName, blobUrl, bitrate, sr){
-  const item = document.createElement('div'); item.className = 'history-item';
-  item.innerHTML = `<div style="font-weight:600">${escapeHtml(origName)}</div><div style="font-size:12px;color:#9aa4b2"> ${bitrate} ・ ${sr} Hz</div>`;
-  const a = document.createElement('a'); a.href = blobUrl; a.download = origName.replace(/\.[^/.]+$/, '') + '.mp3'; a.textContent = 'ダウンロード';
+function addHistoryItem(origName, blobUrl, bitrate, sr) {
+  const item = document.createElement('div');
+  item.className = 'history-item';
+  const left = document.createElement('div');
+  left.innerHTML = `<div style="font-weight:600">${escapeHtml(origName)}</div><div style="font-size:12px;color:#9aa4b2">ビットレート ${bitrate} ・ ${sr} Hz</div>`;
+  const right = document.createElement('div');
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = origName.replace(/\.[^/.]+$/, '') + '.mp3';
+  a.textContent = 'ダウンロード';
   a.addEventListener('click', ()=> showToast('ダウンロードを開始します'));
-  item.appendChild(a); historyEl.appendChild(item);
+  right.appendChild(a);
+  item.appendChild(left);
+  item.appendChild(right);
+  historyEl.appendChild(item);
 }
 
-function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
 function getExtension(name){ const i = name.lastIndexOf('.'); return i>=0 ? name.slice(i) : ''; }
 
-function handleFile(file){
-  if (!file.type.startsWith('video') && !file.type.startsWith('audio')) { showToast('動画または音声ファイルを選択してください'); return; }
+function handleFile(file) {
+  if (!file.type.startsWith('video') && !file.type.startsWith('audio')) {
+    showToast('動画または音声ファイルを選択してください');
+    return;
+  }
   currentFile = file;
-  fileInfo.hidden = false; fileNameEl.textContent = file.name; fileSizeEl.textContent = humanFileSize(file.size);
-  estTimeEl.textContent = estimateTime(file.size); convertBtn.disabled = false; downloadBtn.hidden = true; statusText.textContent = 'ファイルが選択されました';
+  fileInfo.hidden = false;
+  fileNameEl.textContent = file.name;
+  fileSizeEl.textContent = humanFileSize(file.size);
+  estTimeEl.textContent = estimateTime(file.size);
+  convertBtn.disabled = false;
+  previewBtn.disabled = false;
+  logArea.hidden = true;
+  statusText.textContent = 'ファイルが選択されました';
+  downloadBtn.hidden = true;
 }
 
-function resetState(){
-  currentFile = null; fileInfo.hidden = true; fileInput.value = ''; convertBtn.disabled = true; statusText.textContent = '待機中';
-  progressEl.value = 0; percentText.textContent = '0%'; if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; } downloadBtn.hidden = true;
+function resetState() {
+  currentFile = null;
+  fileInfo.hidden = true;
+  fileInput.value = '';
+  convertBtn.disabled = true;
+  previewBtn.disabled = true;
+  statusText.textContent = '待機中';
+  progressEl.value = 0;
+  percentText.textContent = '0%';
+  if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
+  downloadBtn.hidden = true;
 }
 
 statusText.textContent = 'ファイルを選択してください';
