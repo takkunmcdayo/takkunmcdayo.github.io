@@ -191,3 +191,12 @@ function resetState() {
 }
 
 statusText.textContent = 'ファイルを選択してください';
+
+// テスト用：ページ読み込み時に convertBtn を有効化（本番では削除）
+document.addEventListener('DOMContentLoaded', () => {
+  const cb = document.getElementById('convertBtn');
+  if (cb) {
+    cb.disabled = false;
+    console.log('convertBtn forced enabled for testing');
+  }
+});
