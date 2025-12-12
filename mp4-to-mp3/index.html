@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>MP4 → MP3 Converter</title>
-  <meta name="description" content="ブラウザで動く MP4 を MP3 に変換するツール。モバイル対応。">
+  <meta name="description" content="ブラウザで動く MP4 を MP3 に変換するツール。モバイル対応、ファイル選択、ドラッグ＆ドロップ、ビットレート選択、変換履歴に対応。">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -29,7 +29,6 @@
             <button id="openFolderBtn" class="ghost">参照</button>
           </div>
 
-          <!-- input は非表示。モバイルでカメラ/録音を直接使いたい場合は capture 属性を検討 -->
           <input id="fileInput" type="file" accept="video/*,audio/*" aria-hidden="true" />
         </div>
 
@@ -52,12 +51,17 @@
       </section>
 
       <aside class="right" aria-label="設定と進捗">
+        <div class="convert-area">
+          <button id="convertBtn" class="primary large" disabled>変換する</button>
+        </div>
+
         <label class="small" for="bitrate">ビットレート</label>
         <select id="bitrate" class="select">
           <option value="192k">192 kbps</option>
           <option value="160k">160 kbps</option>
           <option value="128k" selected>128 kbps</option>
           <option value="96k">96 kbps</option>
+          <option value="64k">64 kbps</option>
         </select>
 
         <label class="small" for="samplerate">サンプルレート</label>
@@ -79,14 +83,14 @@
         <div class="history" id="history" aria-live="polite">
           <div class="hint">変換履歴</div>
         </div>
+
+        <div class="action-row">
+          <button id="downloadBtn" class="secondary large" hidden>ダウンロード</button>
+        </div>
+
+        <div class="note">注意: ブラウザでの変換はリソースを消費します。大きなファイルは失敗する可能性があります。</div>
       </aside>
     </main>
-
-    <!-- モバイル向け固定アクションバー -->
-    <div id="actionBar" class="action-bar" aria-hidden="false">
-      <button id="convertBtn" class="primary large" disabled>変換する</button>
-      <button id="downloadBtn" class="secondary large" hidden>ダウンロード</button>
-    </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
