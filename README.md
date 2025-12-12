@@ -45,8 +45,10 @@ https://tools.takkunlego0916.f5.si/
 This project is licensed under the MIT License.
 
 # 作者
-	•	GitHub: [Takkunlego0916](https://github.com/takkunlego0916)
-	•	Website: https://contact.takkunlego0916.f5.si/
+
+GitHub: [Takkunlego0916](https://github.com/takkunlego0916)
+
+Website: https://contact.takkunlego0916.f5.si/
 
   
 # お願い
