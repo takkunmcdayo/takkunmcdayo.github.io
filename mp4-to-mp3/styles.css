@@ -1,0 +1,55 @@
+:root{
+  --bg:#0f1724;
+  --muted:#9aa4b2;
+  --accent:#4f46e5;
+  --accent-2:#06b6d4;
+  --glass: rgba(255,255,255,0.03);
+  --radius:12px;
+  --maxw:920px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Segoe UI", Roboto, sans-serif;
+  background: linear-gradient(180deg,#071025 0%, #071a2a 60%);
+  color:#e6eef8;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:32px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{width:100%;max-width:var(--maxw);margin:0 auto}
+header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;color:white;box-shadow:0 6px 20px rgba(79,70,229,0.18)}
+h1{font-size:20px;margin:0}
+.lead{margin:4px 0 0;color:var(--muted);font-size:13px}
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:var(--radius);padding:20px;box-shadow: 0 10px 30px rgba(2,6,23,0.6);display:grid;grid-template-columns: 1fr 360px;gap:18px;align-items:start}
+.left{min-height:260px}
+.drop{border:2px dashed rgba(255,255,255,0.06);border-radius:10px;padding:18px;background:var(--glass);display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;text-align:center;transition:all .18s ease}
+.drop.dragover{border-color:rgba(79,70,229,0.9);transform:translateY(-4px);box-shadow:0 8px 30px rgba(79,70,229,0.08)}
+.drop input{display:none}
+.drop-title{font-weight:700}
+.hint{color:var(--muted);font-size:14px}
+.file-info{margin-top:12px}
+.filemeta{display:flex;gap:12px;align-items:center;width:100%;justify-content:space-between}
+.name{font-weight:600}
+.estimate{font-weight:700}
+.controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+button.primary{background:linear-gradient(90deg,var(--accent),#7c3aed);color:white;border:0;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;box-shadow:0 8px 24px rgba(79,70,229,0.12)}
+button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);padding:10px 12px;border-radius:10px;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+.right{background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);padding:14px;border-radius:10px}
+.small{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+select,input[type=range]{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+.progresswrap{margin-top:12px}
+progress{width:100%;height:14px;border-radius:8px;overflow:hidden}
+.status{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-top:8px}
+.history{margin-top:14px;max-height:160px;overflow:auto;padding-right:6px}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.01);margin-bottom:8px;font-size:13px}
+.action-row{display:flex;gap:8px;margin-top:12px}
+.note{margin-top:12px;color:var(--muted);font-size:13px}
+.toast{position:fixed;right:20px;bottom:20px;background:#071a2a;padding:12px 16px;border-radius:10px;box-shadow:0 8px 30px rgba(2,6,23,0.6);color:#dff;display:none}
+.log{margin-top:12px;color:var(--muted);font-size:13px;white-space:pre-wrap}
+@media (max-width:880px){.card{grid-template-columns:1fr; padding:16px}.right{order:2}}
