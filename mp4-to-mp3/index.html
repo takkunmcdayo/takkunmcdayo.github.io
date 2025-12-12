@@ -2,39 +2,34 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>MP4 → MP3 Converter</title>
-  <meta name="description" content="ブラウザで動く MP4 を MP3 に変換するツール。ドラッグ＆ドロップ、ファイル選択、ビットレート選択、進捗表示、変換履歴に対応。">
+  <meta name="description" content="ブラウザで動く MP4 を MP3 に変換するツール。モバイル対応。">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="wrap" role="main">
-    <header>
+    <header class="site-header">
       <div class="logo" aria-hidden="true">MP3</div>
       <div>
-        <h1>MP4 を MP3 に変換</h1>
-        <p class="lead">ブラウザ内で変換。ドラッグ＆ドロップまたはボタンからファイルを選択できます。</p>
+        <h1>MP4 → MP3</h1>
+        <p class="lead">ブラウザで変換。ファイル選択またはドラッグで開始。</p>
       </div>
     </header>
 
-    <section class="card" aria-labelledby="title">
-      <div class="left">
-        <div id="dropzone" class="drop" tabindex="0" aria-label="ファイルをドロップまたはクリックして選択">
-          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 3v10" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8 7l4-4 4 4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M21 15v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
-          </svg>
-          <div class="drop-title">ここにファイルをドロップ</div>
-          <div class="hint">または下のボタンで選択。対応: MP4, MOV, MKV などの動画ファイル</div>
+    <main class="card" aria-labelledby="title">
+      <section class="left">
+        <div id="dropzone" class="drop" tabindex="0" aria-label="ファイルをドロップまたは選択">
+          <div class="drop-icon" aria-hidden="true">🎵</div>
+          <div class="drop-title">ファイルをドロップ</div>
+          <div class="hint">または下のボタンで選択（MP4, MOV, MKV 等）</div>
 
-          <!-- 明示的なファイル選択ボタン -->
-          <div style="margin-top:12px; display:flex; gap:8px;">
-            <button id="selectBtn" class="primary" aria-label="ファイルを選択">ファイルを選択</button>
-            <button id="openFolderBtn" class="ghost" aria-label="ファイル選択ダイアログを開く">参照</button>
+          <div class="select-row">
+            <button id="selectBtn" class="primary large" aria-label="ファイルを選択">ファイルを選択</button>
+            <button id="openFolderBtn" class="ghost">参照</button>
           </div>
 
-          <!-- 実際の input は非表示のまま -->
+          <!-- input は非表示。モバイルでカメラ/録音を直接使いたい場合は capture 属性を検討 -->
           <input id="fileInput" type="file" accept="video/*,audio/*" aria-hidden="true" />
         </div>
 
@@ -44,62 +39,54 @@
               <div class="name" id="fileName"></div>
               <div class="hint" id="fileSize"></div>
             </div>
-            <div style="text-align:right">
-              <div class="hint">所要目安</div>
-              <div id="estTime" class="estimate">—</div>
-            </div>
+            <div class="estimate" id="estTime">—</div>
           </div>
 
           <div class="controls">
-            <button id="convertBtn" class="primary" disabled>変換する</button>
-            <button id="previewBtn" class="ghost" disabled>プレビュー</button>
+            <button id="previewBtn" class="ghost">プレビュー</button>
             <button id="clearBtn" class="ghost">クリア</button>
           </div>
         </div>
 
         <pre id="logArea" class="log" hidden></pre>
-      </div>
+      </section>
 
       <aside class="right" aria-label="設定と進捗">
-        <div>
-          <label class="small" for="bitrate">ビットレート</label>
-          <select id="bitrate">
-            <option value="192k">192 kbps</option>
-            <option value="160k">160 kbps</option>
-            <option value="128k" selected>128 kbps</option>
-            <option value="96k">96 kbps</option>
-            <option value="64k">64 kbps</option>
-          </select>
+        <label class="small" for="bitrate">ビットレート</label>
+        <select id="bitrate" class="select">
+          <option value="192k">192 kbps</option>
+          <option value="160k">160 kbps</option>
+          <option value="128k" selected>128 kbps</option>
+          <option value="96k">96 kbps</option>
+        </select>
 
-          <label class="small" for="samplerate">サンプルレート</label>
-          <select id="samplerate">
-            <option value="44100" selected>44100 Hz</option>
-            <option value="48000">48000 Hz</option>
-            <option value="22050">22050 Hz</option>
-          </select>
+        <label class="small" for="samplerate">サンプルレート</label>
+        <select id="samplerate" class="select">
+          <option value="44100" selected>44100 Hz</option>
+          <option value="48000">48000 Hz</option>
+          <option value="22050">22050 Hz</option>
+        </select>
 
-          <div class="progresswrap">
-            <label class="small">進捗</label>
-            <progress id="progress" value="0" max="100"></progress>
-            <div class="status">
-              <div id="statusText">待機中</div>
-              <div id="percent">0%</div>
-            </div>
+        <div class="progresswrap">
+          <label class="small">進捗</label>
+          <progress id="progress" value="0" max="100"></progress>
+          <div class="status">
+            <div id="statusText">待機中</div>
+            <div id="percent">0%</div>
           </div>
+        </div>
 
-          <div class="history" id="history" aria-live="polite">
-            <div class="hint">変換履歴</div>
-          </div>
-
-          <div class="action-row">
-            <button id="downloadBtn" class="primary" hidden>ダウンロード</button>
-            <button id="openAudioBtn" class="ghost" hidden>再生</button>
-          </div>
-
-          <div class="note">注意: ブラウザでの変換はリソースを消費します。長時間の動画はサーバー処理を検討してください。</div>
+        <div class="history" id="history" aria-live="polite">
+          <div class="hint">変換履歴</div>
         </div>
       </aside>
-    </section>
+    </main>
+
+    <!-- モバイル向け固定アクションバー -->
+    <div id="actionBar" class="action-bar" aria-hidden="false">
+      <button id="convertBtn" class="primary large" disabled>変換する</button>
+      <button id="downloadBtn" class="secondary large" hidden>ダウンロード</button>
+    </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
@@ -107,4 +94,3 @@
   <script type="module" src="app.js"></script>
 </body>
 </html>
-
