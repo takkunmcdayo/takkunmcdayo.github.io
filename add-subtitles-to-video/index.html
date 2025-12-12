@@ -1,100 +1,490 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Video + Subtitles</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Auto Subtitle Tool</title>
 <style>
-  body{font-family:system-ui;padding:16px}
-  #player,video{width:100%;max-width:900px;height:500px;background:#000}
-  .caption{position:relative}
-  .overlay{position:absolute;left:0;right:0;bottom:10%;text-align:center;color:#fff;
-    text-shadow:0 2px 6px rgba(0,0,0,.8);font-size:18px;padding:0 10px}
+  :root{--bg:#0f1720;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
+  body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN",Meiryo,Arial;margin:0;background:linear-gradient(180deg,#071028 0%, #071a2a 100%);color:#e6eef6}
+  .wrap{max-width:1100px;margin:28px auto;padding:20px}
+  header{display:flex;align-items:center;gap:16px}
+  h1{font-size:20px;margin:0}
+  p.lead{margin:6px 0 18px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:360px 1fr;gap:18px}
+  .card{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+  label{display:block;margin:8px 0;color:var(--muted);font-size:13px}
+  input[type=text], select, .small-input{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+  button{background:var(--accent);border:none;color:#042027;padding:8px 12px;border-radius:8px;cursor:pointer}
+  .muted{color:var(--muted);font-size:13px}
+  #playerWrap{background:#000;border-radius:8px;overflow:hidden;min-height:320px;display:flex;align-items:center;justify-content:center;position:relative}
+  video, iframe{width:100%;height:100%;min-height:320px;border:0}
+  .overlay{position:absolute;left:0;right:0;bottom:6%;text-align:center;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.8);font-size:18px;padding:0 12px;pointer-events:none}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .tabs{display:flex;gap:6px;margin-bottom:8px}
+  .tab{padding:8px 10px;border-radius:8px;background:var(--glass);cursor:pointer}
+  .tab.active{background:linear-gradient(90deg,#08303a,#06323a);box-shadow:inset 0 -2px 0 rgba(0,0,0,0.3)}
+  .subtitle-list{max-height:300px;overflow:auto;margin-top:10px;border-radius:6px;padding:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent)}
+  .cue{padding:8px;border-radius:6px;margin-bottom:8px;background:rgba(255,255,255,0.02);display:flex;gap:8px;align-items:flex-start}
+  .cue textarea{flex:1;background:transparent;border:1px solid rgba(255,255,255,0.03);color:inherit;padding:6px;border-radius:6px;min-height:44px}
+  .cue .time{width:120px;font-size:13px;color:var(--muted)}
+  .row{display:flex;gap:8px;align-items:center}
+  .small{font-size:13px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02)}
+  footer{margin-top:18px;color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
-<h3>動画URLまたはファイルに字幕を追加</h3>
+<div class="wrap">
+  <header>
+    <h1>Auto Subtitle Tool</h1>
+  </header>
+  <p class="lead">YouTube / ローカル動画 / マイクの音声から自動で字幕を生成し、編集・エクスポートできます。高精度化はサーバー連携（Whisper等）を利用してください。</p>
 
-<label>YouTube URL: <input id="ytUrl" placeholder="https://www.youtube.com/watch?v=..." style="width:60%"></label>
-<button id="loadYt">Load YouTube</button>
-<br><br>
-<label>ローカル動画ファイル: <input id="fileVideo" type="file" accept="video/*"></label>
-<br><br>
-<label>字幕ファイル (.vtt/.srt): <input id="fileSub" type="file" accept=".vtt,.srt,text/vtt"></label>
-<label>または字幕URL: <input id="subUrl" style="width:50%"></label>
-<button id="applySub">Apply Subtitles</button>
+  <div class="grid">
+    <!-- 左パネル -->
+    <div class="card">
+      <div class="tabs" role="tablist">
+        <div class="tab active" data-source="youtube">YouTube</div>
+        <div class="tab" data-source="local">ローカル動画</div>
+        <div class="tab" data-source="mic">マイク（ライブ）</div>
+      </div>
 
-<div id="container" style="margin-top:16px">
-  <div id="playerWrap" class="caption"></div>
+      <div id="sourceForms">
+        <!-- YouTube -->
+        <div class="source" data-source="youtube">
+          <label>YouTube URL</label>
+          <input id="ytUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." />
+          <div style="margin-top:8px" class="row">
+            <button id="loadYt">読み込む</button>
+            <div class="muted" style="margin-left:auto">YouTube の音声抽出は制約あり。サーバー連携を推奨</div>
+          </div>
+        </div>
+
+        <!-- Local -->
+        <div class="source" data-source="local" style="display:none">
+          <label>動画ファイルを選択</label>
+          <input id="fileVideo" type="file" accept="video/*" />
+          <label class="muted">ブラウザで音声を録音して自動文字起こしできます（captureStream 対応ブラウザ）</label>
+        </div>
+
+        <!-- Mic -->
+        <div class="source" data-source="mic" style="display:none">
+          <label>マイク入力</label>
+          <div class="row">
+            <button id="startMic">開始</button>
+            <button id="stopMic" disabled>停止</button>
+            <div class="muted" style="margin-left:auto">Realtime モードは Web Speech API を使用</div>
+          </div>
+        </div>
+      </div>
+
+      <hr style="border:none;height:1px;background:rgba(255,255,255,0.03);margin:12px 0">
+
+      <label>モード</label>
+      <select id="modeSelect" class="small-input">
+        <option value="realtime">Realtime (Web Speech API)</option>
+        <option value="server">Server Transcribe (Whisper 等)</option>
+      </select>
+
+      <div id="serverConfig" style="display:none;margin-top:8px">
+        <label>Server API Endpoint</label>
+        <input id="serverEndpoint" type="text" placeholder="https://your-server.example.com/transcribe" />
+        <label class="muted">サーバーは音声チャンクを受け取り、JSONで {segments:[{start,end,text}]} を返す想定</label>
+      </div>
+
+      <hr style="border:none;height:1px;background:rgba(255,255,255,0.03);margin:12px 0">
+
+      <div class="row">
+        <button id="startAuto" class="small">自動文字起こし開始</button>
+        <button id="stopAuto" class="small" disabled>停止</button>
+        <button id="generateVtt" class="small">VTT を生成</button>
+        <button id="downloadVtt" class="small">VTT ダウンロード</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>字幕プレビュー / 編集</label>
+        <div class="subtitle-list" id="subtitleList"></div>
+      </div>
+    </div>
+
+    <!-- 右パネル -->
+    <div class="card">
+      <div id="playerWrap">
+        <div id="playerInner" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted)">
+          プレイヤーがここに表示されます
+        </div>
+        <div class="overlay" id="overlay"></div>
+      </div>
+
+      <div class="controls">
+        <div class="muted">再生位置: <span id="curTime">0.00</span>s</div>
+        <div style="margin-left:auto" class="muted">字幕は下部に表示されます</div>
+      </div>
+
+      <footer>
+        <div class="muted">注: GitHub Pages は静的ホスティングです。Server Transcribe を使う場合は別サーバーが必要です。</div>
+      </footer>
+    </div>
+  </div>
 </div>
 
 <script>
-/* シンプル実装：YouTubeはiframe、ローカルは<video>。字幕はWebVTTに変換してオーバーレイ表示 */
-let ytPlayer=null, videoEl=null, cues=[];
-function createYouTube(id){
-  document.getElementById('playerWrap').innerHTML = '<div id="player"></div><div class="overlay" id="overlay"></div>';
-  const tag = document.createElement('script');
-  tag.src = "https://www.youtube.com/iframe_api";
-  document.head.appendChild(tag);
-  window.onYouTubeIframeAPIReady = () => {
-    ytPlayer = new YT.Player('player',{height:'500',width:'100%',videoId:id,events:{onStateChange:()=>{}}});
-    startTicker(()=> ytPlayer.getCurrentTime());
-  };
+/* ======= グローバル状態 ======= */
+let currentSource = 'youtube';
+let ytPlayer = null;
+let localVideo = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let recognition = null;
+let cues = []; // {start,end,text}
+let overlay = document.getElementById('overlay');
+let tickInterval = null;
+let serverEndpoint = null;
+
+/* ======= UI 初期化 ======= */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=> {
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    currentSource = t.dataset.source;
+    document.querySelectorAll('.source').forEach(s=> s.style.display = s.dataset.source===currentSource ? 'block' : 'none');
+  });
+});
+
+document.getElementById('modeSelect').addEventListener('change', e=>{
+  const v = e.target.value;
+  document.getElementById('serverConfig').style.display = v==='server' ? 'block' : 'none';
+});
+
+/* ======= プレイヤー作成 ======= */
+function createYouTube(videoId){
+  // シンプルに iframe 埋め込み（YouTube IFrame API を使う場合は拡張可）
+  const url = 'https://www.youtube.com/embed/' + videoId + '?enablejsapi=1';
+  document.getElementById('playerInner').innerHTML = '<iframe id="ytFrame" src="'+url+'" allow="autoplay; encrypted-media" frameborder="0" allowfullscreen></iframe>';
+  // Note: クロスオリジンのため音声キャプチャは不可。サーバー側で音声抽出する必要あり。
 }
-function createLocalVideo(file){
-  const url = URL.createObjectURL(file);
-  document.getElementById('playerWrap').innerHTML = `<video id="local" controls crossorigin="anonymous"><source src="${url}"></video><div class="overlay" id="overlay"></div>`;
-  videoEl = document.getElementById('local');
-  startTicker(()=> videoEl.currentTime);
-}
-function startTicker(getTime){
-  clearInterval(window._tick);
-  window._tick = setInterval(()=>{
-    const t = getTime();
-    const ov = document.getElementById('overlay');
-    const c = cues.find(x=> t>=x.start && t<=x.end);
-    ov.textContent = c ? c.text : '';
-  },200);
-}
-function parseVTT(text){
-  // 簡易パーサ：hh:mm:ss.mmm --> seconds
-  const lines = text.replace(/\r/g,'').split('\n');
-  const out=[];
-  for(let i=0;i<lines.length;i++){
-    const l = lines[i];
-    const m = l.match(/(\d{2}:\d{2}:\d{2}\.\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}\.\d{3})/);
-    if(m){
-      const start = toSec(m[1]), end = toSec(m[2]);
-      let textLine = '';
-      i++;
-      while(i<lines.length && lines[i].trim()!==''){ textLine += (textLine?'\n':'')+lines[i]; i++; }
-      out.push({start,end,text:textLine});
+
+document.getElementById('loadYt').addEventListener('click', ()=>{
+  const url = document.getElementById('ytUrl').value.trim();
+  const m = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?&]+)/);
+  if(!m){ alert('YouTube URL を入力してください'); return; }
+  createYouTube(m[1]);
+});
+
+/* ローカル動画 */
+document.getElementById('fileVideo').addEventListener('change', async (e)=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const url = URL.createObjectURL(f);
+  document.getElementById('playerInner').innerHTML = '<video id="localVideo" controls crossorigin="anonymous"><source src="'+url+'"></video>';
+  localVideo = document.getElementById('localVideo');
+  localVideo.addEventListener('timeupdate', ()=> document.getElementById('curTime').textContent = localVideo.currentTime.toFixed(2));
+});
+
+/* マイク */
+document.getElementById('startMic').addEventListener('click', async ()=>{
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    document.getElementById('startMic').disabled = true;
+    document.getElementById('stopMic').disabled = false;
+    // マイクは Web Speech API で処理する（Realtime モード）
+    startWebSpeech(stream);
+  }catch(err){ alert('マイクアクセスが必要です: ' + err.message); }
+});
+document.getElementById('stopMic').addEventListener('click', ()=>{
+  stopWebSpeech();
+  document.getElementById('startMic').disabled = false;
+  document.getElementById('stopMic').disabled = true;
+});
+
+/* ======= 自動文字起こし開始/停止 ======= */
+document.getElementById('startAuto').addEventListener('click', async ()=>{
+  const mode = document.getElementById('modeSelect').value;
+  serverEndpoint = document.getElementById('serverEndpoint').value.trim() || null;
+  document.getElementById('startAuto').disabled = true;
+  document.getElementById('stopAuto').disabled = false;
+
+  if(mode === 'realtime'){
+    // Realtime: Web Speech API を使う。対象はマイク入力のみ（ローカル動画の音声は captureStream を使う）
+    if(currentSource === 'mic'){
+      // Web Speech はマイク入力を内部で扱うため getUserMedia は不要
+      startWebSpeech();
+    } else if(currentSource === 'local'){
+      // ローカル動画の音声をキャプチャして Web Speech に流すことはブラウザで直接は難しいため、
+      // MediaRecorder で音声を録音し短いチャンクをサーバーに送りサーバーで文字起こしする方が現実的。
+      // ここではブラウザで録音してサーバーへ送るワークフローを開始する。
+      if(!localVideo){ alert('ローカル動画を選択してください'); stopAutoUI(); return; }
+      if(!('captureStream' in localVideo)){ alert('このブラウザは captureStream をサポートしていません'); stopAutoUI(); return; }
+      const stream = localVideo.captureStream();
+      startRecordingStream(stream);
+    } else {
+      alert('YouTube の音声はブラウザ単体で抽出できません。サーバー連携を使ってください。');
+      stopAutoUI();
+    }
+  } else {
+    // Server Transcribe: 録音してサーバーへ送る
+    if(currentSource === 'local'){
+      if(!localVideo){ alert('ローカル動画を選択してください'); stopAutoUI(); return; }
+      if(!('captureStream' in localVideo)){ alert('このブラウザは captureStream をサポートしていません'); stopAutoUI(); return; }
+      const stream = localVideo.captureStream();
+      startRecordingStream(stream, true);
+    } else if(currentSource === 'mic'){
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      startRecordingStream(stream, true);
+    } else {
+      alert('YouTube の音声抽出はサーバー側で行ってください。');
+      stopAutoUI();
     }
   }
-  return out;
+});
+
+document.getElementById('stopAuto').addEventListener('click', ()=>{
+  stopRecording();
+  stopWebSpeech();
+  stopAutoUI();
+});
+
+function stopAutoUI(){
+  document.getElementById('startAuto').disabled = false;
+  document.getElementById('stopAuto').disabled = true;
 }
-function toSec(hms){ const p=hms.split(':'); return (+p[0])*3600+(+p[1])*60+(+p[2]); }
 
-document.getElementById('loadYt').onclick = ()=>{
-  const url = document.getElementById('ytUrl').value;
-  const m = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?&]+)/);
-  if(m) createYouTube(m[1]);
-  else alert('YouTube URLを入力してください');
-};
-document.getElementById('fileVideo').onchange = e=> createLocalVideo(e.target.files[0]);
+/* ======= Web Speech API を使ったリアルタイム認識 ======= */
+function startWebSpeech(streamProvided){
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    alert('このブラウザは Web Speech API をサポートしていません。Chrome を推奨します。');
+    stopAutoUI();
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'ja-JP';
+  recognition.interimResults = true;
+  recognition.continuous = true;
 
-document.getElementById('applySub').onclick = async ()=>{
-  const f = document.getElementById('fileSub').files[0];
-  let text = '';
-  if(f){ text = await f.text(); }
-  else if(document.getElementById('subUrl').value){
-    const res = await fetch(document.getElementById('subUrl').value);
-    text = await res.text();
-  } else { alert('字幕ファイルかURLを指定してください'); return; }
-  // srt -> vtt minimal conversion
-  if(text.indexOf('-->')>-1 && text.indexOf('WEBVTT')===-1) text = 'WEBVTT\n\n'+text.replace(/(\d+):(\d{2}):(\d{2}),/g,'$1:$2:$3.');
-  cues = parseVTT(text);
-};
+  let lastFinal = '';
+  let startTime = performance.now()/1000;
+  recognition.onresult = (ev)=>{
+    let interim = '';
+    for(let i=ev.resultIndex;i<ev.results.length;i++){
+      const r = ev.results[i];
+      if(r.isFinal){
+        const text = r[0].transcript.trim();
+        const now = (performance.now()/1000) - startTime;
+        // push cue with short duration; user can edit later
+        cues.push({start: now, end: now + Math.max(1.5, text.split(' ').length*0.5), text});
+        renderCues();
+      } else {
+        interim += r[0].transcript;
+      }
+    }
+    overlay.textContent = interim;
+  };
+  recognition.onerror = (e)=> console.warn('recognition error', e);
+  recognition.onend = ()=> console.log('recognition ended');
+
+  recognition.start();
+  // If streamProvided is given, we ignore it because Web Speech uses mic internally.
+}
+
+/* 停止 */
+function stopWebSpeech(){
+  if(recognition){ try{ recognition.stop(); }catch(e){} recognition=null; }
+  overlay.textContent = '';
+}
+
+/* ======= MediaRecorder を使った録音とサーバー送信 ======= */
+async function startRecordingStream(stream, sendToServer=false){
+  recordedChunks = [];
+  const options = {mimeType: 'audio/webm;codecs=opus'};
+  try{ mediaRecorder = new MediaRecorder(stream, options); } catch(e){
+    alert('MediaRecorder を開始できません: ' + e.message);
+    stopAutoUI();
+    return;
+  }
+  mediaRecorder.ondataavailable = (ev)=> {
+    if(ev.data && ev.data.size>0) recordedChunks.push(ev.data);
+    // ここでチャンクごとにサーバーへ送ることも可能
+    if(sendToServer && recordedChunks.length >= 3){
+      // 例: 3チャンクたまったら送信
+      const blob = new Blob(recordedChunks.splice(0), {type:'audio/webm'});
+      sendAudioChunkToServer(blob);
+    }
+  };
+  mediaRecorder.onstop = async ()=>{
+    // 最終チャンクを送る
+    if(sendToServer && recordedChunks.length>0){
+      const blob = new Blob(recordedChunks.splice(0), {type:'audio/webm'});
+      await sendAudioChunkToServer(blob, true);
+    }
+  };
+  mediaRecorder.start(1000); // 1秒ごとに dataavailable を発火
+  // UI: 再生位置の更新
+  tickInterval = setInterval(()=>{
+    const t = localVideo ? localVideo.currentTime : 0;
+    document.getElementById('curTime').textContent = (t || 0).toFixed(2);
+    // overlay は cues に基づいて表示
+    const c = cues.find(x=> t>=x.start && t<=x.end);
+    overlay.textContent = c ? c.text : '';
+  }, 200);
+}
+
+/* 録音停止 */
+function stopRecording(){
+  if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  if(tickInterval) clearInterval(tickInterval);
+  mediaRecorder = null;
+}
+
+/* サーバーへ音声チャンクを送信する例 */
+async function sendAudioChunkToServer(blob, final=false){
+  if(!serverEndpoint) serverEndpoint = document.getElementById('serverEndpoint').value.trim() || null;
+  if(!serverEndpoint){ console.warn('serverEndpoint not set'); return; }
+  try{
+    const fd = new FormData();
+    fd.append('file', blob, 'chunk.webm');
+    fd.append('final', final ? '1' : '0');
+    // サーバーは受け取った音声を逐次または最終的に Whisper 等で処理し、
+    // {segments:[{start,end,text}]} の JSON を返す想定
+    const res = await fetch(serverEndpoint, {method:'POST', body:fd});
+    if(!res.ok) { console.warn('server error', res.status); return; }
+    const json = await res.json();
+    if(json && Array.isArray(json.segments)){
+      // サーバーから返ってきたセグメントをマージ
+      json.segments.forEach(s=>{
+        cues.push({start: s.start, end: s.end, text: s.text});
+      });
+      cues.sort((a,b)=>a.start-b.start);
+      renderCues();
+    }
+  }catch(err){ console.warn('sendAudioChunkToServer error', err); }
+}
+
+/* ======= 字幕編集 UI ======= */
+function renderCues(){
+  const list = document.getElementById('subtitleList');
+  list.innerHTML = '';
+  cues.forEach((c, idx)=>{
+    const div = document.createElement('div');
+    div.className = 'cue';
+    div.innerHTML = `
+      <div class="time">
+        <div>開始: <input data-idx="${idx}" class="timeInput" value="${formatTime(c.start)}" /></div>
+        <div>終了: <input data-idx-end="${idx}" class="timeInput" value="${formatTime(c.end)}" /></div>
+      </div>
+      <textarea data-idx-text="${idx}">${escapeHtml(c.text)}</textarea>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button data-play="${idx}" class="small">▶ 再生</button>
+        <button data-del="${idx}" class="small">削除</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+
+  // イベント
+  list.querySelectorAll('[data-idx-text]').forEach(el=>{
+    el.addEventListener('input', e=>{
+      const i = +e.target.dataset.idxText;
+      cues[i].text = e.target.value;
+    });
+  });
+  list.querySelectorAll('[data-idx]').forEach(el=>{
+    el.addEventListener('change', e=>{
+      const i = +e.target.dataset.idx;
+      const v = parseTime(e.target.value);
+      if(!isNaN(v)) cues[i].start = v;
+      renderCues();
+    });
+  });
+  list.querySelectorAll('[data-idx-end]').forEach(el=>{
+    el.addEventListener('change', e=>{
+      const i = +e.target.dataset.idxEnd;
+      const v = parseTime(e.target.value);
+      if(!isNaN(v)) cues[i].end = v;
+      renderCues();
+    });
+  });
+  list.querySelectorAll('[data-play]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const i = +e.target.dataset.play;
+      const t = cues[i].start + 0.01;
+      if(localVideo){ localVideo.currentTime = t; localVideo.play(); }
+      // YouTube の場合は API を使ってシークする実装を追加可能
+    });
+  });
+  list.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const i = +e.target.dataset.del;
+      cues.splice(i,1);
+      renderCues();
+    });
+  });
+}
+
+/* ======= VTT / SRT 生成とダウンロード ======= */
+function generateVTT(){
+  // cues をソートして VTT を作る
+  cues.sort((a,b)=>a.start-b.start);
+  let v = 'WEBVTT\n\n';
+  cues.forEach((c, i)=>{
+    v += `${formatTimeVTT(c.start)} --> ${formatTimeVTT(c.end)}\n${c.text}\n\n`;
+  });
+  return v;
+}
+
+function downloadVTT(){
+  const v = generateVTT();
+  const blob = new Blob([v], {type:'text/vtt'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'subtitles.vtt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+document.getElementById('generateVtt').addEventListener('click', ()=> {
+  const v = generateVTT();
+  // 表示用に一時的にダイアログで見せる
+  const w = window.open('', '_blank');
+  w.document.write('<pre style="white-space:pre-wrap;background:#0b1220;color:#e6eef6;padding:16px">'+escapeHtml(v)+'</pre>');
+});
+
+document.getElementById('downloadVtt').addEventListener('click', downloadVTT);
+
+/* ======= ユーティリティ ======= */
+function formatTime(sec){
+  return (sec || 0).toFixed(3);
+}
+function formatTimeVTT(sec){
+  // HH:MM:SS.mmm
+  const h = Math.floor(sec/3600); sec -= h*3600;
+  const m = Math.floor(sec/60); sec -= m*60;
+  const s = sec;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(Math.floor(s)).padStart(2,'0')}.${String(Math.floor((s-Math.floor(s))*1000)).padStart(3,'0')}`;
+}
+function parseTime(str){
+  // accepts H:MM:SS.mmm or MM:SS.mmm or seconds
+  if(/^\d+(\.\d+)?$/.test(str)) return parseFloat(str);
+  const parts = str.split(':').map(x=>parseFloat(x));
+  if(parts.length===3) return parts[0]*3600 + parts[1]*60 + parts[2];
+  if(parts.length===2) return parts[0]*60 + parts[1];
+  return NaN;
+}
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* 初期レンダリング */
+renderCues();
+
+/* ======= 備考 =======
+Server API spec (example):
+POST /transcribe
+FormData: file: audio blob, final: '0' or '1'
+Response JSON: { segments: [ { start: 0.12, end: 2.34, text: "こんにちは" }, ... ] }
+
+- サーバー側は受け取った音声を Whisper 等で処理し、逐次または最終的に segments を返す。
+- YouTube の音声抽出はブラウザ単体では制約があるため、サーバー側でダウンロードして処理するのが現実的です。
+- Web Speech API はブラウザ依存で精度が限定的です。高精度を求める場合はサーバー連携を利用してください。
+================================= */
 </script>
 </body>
 </html>
