@@ -50,6 +50,8 @@ GitHub: [Takkunlego0916](https://github.com/takkunlego0916)
 
 Website: https://contact.takkunlego0916.f5.si/
 
+Discord: takkun_mc_jp
+
   
 # お願い
 
