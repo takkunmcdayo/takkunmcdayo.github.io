@@ -6,7 +6,7 @@
   --card: rgba(255,255,255,0.02);
   --radius:12px;
   --maxw:920px;
-  --touch:48px; /* タッチターゲット基準 */
+  --touch:48px;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Noto Sans JP",sans-serif;-webkit-font-smoothing:antialiased}
@@ -43,22 +43,23 @@ button.large{height:var(--touch);min-width:120px;padding:0 14px;font-weight:700}
 progress{width:100%;height:12px;border-radius:8px;overflow:hidden}
 .status{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin-top:8px}
 .history{margin-top:12px;max-height:160px;overflow:auto}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:#071a2a;padding:10px 14px;border-radius:10px;color:#dff;display:none}
+.action-row{display:flex;gap:8px;margin-top:12px}
+.note{margin-top:12px;color:var(--muted);font-size:13px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:#071a2a;padding:10px 14px;border-radius:10px;color:#dff;display:none}
+.log{margin-top:12px;color:var(--muted);font-size:13px;white-space:pre-wrap}
 
-/* 下部アクションバー（モバイル向け） */
-.action-bar{position:fixed;left:0;right:0;bottom:0;padding:10px;background:linear-gradient(180deg, rgba(7,16,37,0.95), rgba(7,16,37,0.98));display:flex;gap:8px;justify-content:center;align-items:center;border-top:1px solid rgba(255,255,255,0.03)}
-.action-bar button{flex:1;max-width:420px;border-radius:12px}
+/* 変換ボタンエリア */
+.convert-area{display:flex;gap:8px;align-items:center;justify-content:flex-start;margin-bottom:12px}
+.convert-area .primary.large{min-width:160px}
 
-/* レスポンシブ（モバイル優先） */
+/* レスポンシブ */
 @media (max-width:880px){
   .card{grid-template-columns:1fr;gap:12px;padding:12px}
   .right{order:2}
-  .action-bar{padding:12px}
-  .drop-title{font-size:16px}
-  .hint{font-size:12px}
   .select-row{flex-direction:column;align-items:stretch}
   .select-row button{width:100%}
   .primary.large{height:56px}
+  .convert-area .primary.large{width:100%}
 }
 
 /* 大画面微調整 */
