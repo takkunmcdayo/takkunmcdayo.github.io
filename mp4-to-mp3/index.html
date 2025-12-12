@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MP4 → MP3 Converter</title>
-  <meta name="description" content="ブラウザで動く MP4 を MP3 に変換するツール。ドラッグ＆ドロップ、ビットレート選択、進捗表示に対応。">
+  <meta name="description" content="ブラウザで動く MP4 を MP3 に変換するツール。ドラッグ＆ドロップ、ファイル選択、ビットレート選択、進捗表示、変換履歴に対応。">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
       <div class="logo" aria-hidden="true">MP3</div>
       <div>
         <h1>MP4 を MP3 に変換</h1>
-        <p class="lead">ブラウザ内で変換。ドラッグ＆ドロップ、ビットレート選択、進捗表示、変換履歴に対応。</p>
+        <p class="lead">ブラウザ内で変換。ドラッグ＆ドロップまたはボタンからファイルを選択できます。</p>
       </div>
     </header>
 
@@ -26,7 +26,15 @@
             <path d="M21 15v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
           </svg>
           <div class="drop-title">ここにファイルをドロップ</div>
-          <div class="hint">またはクリックして選択。対応: MP4, MOV, MKV などの動画ファイル</div>
+          <div class="hint">または下のボタンで選択。対応: MP4, MOV, MKV などの動画ファイル</div>
+
+          <!-- 明示的なファイル選択ボタン -->
+          <div style="margin-top:12px; display:flex; gap:8px;">
+            <button id="selectBtn" class="primary" aria-label="ファイルを選択">ファイルを選択</button>
+            <button id="openFolderBtn" class="ghost" aria-label="ファイル選択ダイアログを開く">参照</button>
+          </div>
+
+          <!-- 実際の input は非表示のまま -->
           <input id="fileInput" type="file" accept="video/*,audio/*" aria-hidden="true" />
         </div>
 
@@ -99,3 +107,4 @@
   <script type="module" src="app.js"></script>
 </body>
 </html>
+
