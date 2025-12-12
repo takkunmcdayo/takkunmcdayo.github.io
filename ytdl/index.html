@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>My YouTube Video Helper</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-icon">▶︎</span>
+      <h1 class="brand-title">YouTube動画ヘルパー（自分の動画向け）</h1>
+    </div>
+    <p class="sub">URLプレビュー + オリジナルファイルを安全に配布</p>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2 class="card-title">動画URLを貼る</h2>
+      <div class="input-row">
+        <label for="yt-url" class="label">動画URL</label>
+        <input id="yt-url" type="url" placeholder="https://www.youtube.com/watch?v=..." />
+        <button id="preview-btn" class="btn">プレビュー</button>
+      </div>
+      <p id="url-help" class="help">
+        対応: https://www.youtube.com/watch?v=... / https://youtu.be/...
+      </p>
+      <div id="preview-area" class="preview"></div>
+      <div id="meta" class="meta"></div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">オリジナルファイルを用意</h2>
+      <p class="note">
+        これはあなたの手元のオリジナル動画ファイルを配布用に生成します。
+        YouTubeから直接ダウンロードは行いません。
+      </p>
+      <div class="input-row">
+        <label for="video-file" class="label">動画ファイルを選択</label>
+        <input id="video-file" type="file" accept="video/*" />
+      </div>
+
+      <div class="input-row">
+        <label for="download-name" class="label">配布ファイル名</label>
+        <input id="download-name" type="text" placeholder="my-video.mp4" />
+      </div>
+
+      <div class="actions">
+        <button id="prepare-btn" class="btn primary">ダウンロード準備</button>
+        <a id="download-link" class="btn ghost" href="#" download style="display:none;">ダウンロード</a>
+      </div>
+
+      <p id="file-info" class="help"></p>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">使い方のヒント</h2>
+      <ul class="tips">
+        <li><strong>URL検証:</strong> 無効なURLは弾き、埋め込みのみを行います。</li>
+        <li><strong>プライバシー:</strong> 埋め込みは youtube-nocookie を使用し、プレビューのみ。</li>
+        <li><strong>配布:</strong> Blobリンクで即時ダウンロードを生成。サーバ不要の静的運用。</li>
+        <li><strong>メタ情報:</strong> 動画ID/タイトル（oEmbed）を取得し、配布ファイル名の候補に反映。</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <small>© 2025 My Utility Portal Module</small>
+  </footer>
+
+  <script src="./app.js" type="module"></script>
+</body>
+</html>
