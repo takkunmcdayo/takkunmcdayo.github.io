@@ -2,6 +2,8 @@ import { createFFmpeg, fetchFile } from "https://unpkg.com/@ffmpeg/ffmpeg@0.11.6
 
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('fileInput');
+const selectBtn = document.getElementById('selectBtn');
+const openFolderBtn = document.getElementById('openFolderBtn');
 const fileInfo = document.getElementById('fileInfo');
 const fileNameEl = document.getElementById('fileName');
 const fileSizeEl = document.getElementById('fileSize');
@@ -47,6 +49,7 @@ function estimateTime(bytes) {
   return `${sec} 秒（目安）`;
 }
 
+/* ドラッグ＆ドロップの既存処理 */
 ['dragenter','dragover'].forEach(ev=>{
   dropzone.addEventListener(ev, e=>{
     e.preventDefault(); e.stopPropagation();
@@ -63,9 +66,19 @@ dropzone.addEventListener('drop', e=>{
   const f = e.dataTransfer.files && e.dataTransfer.files[0];
   if (f) handleFile(f);
 });
-dropzone.addEventListener('click', ()=> fileInput.click());
 dropzone.addEventListener('keydown', e=> { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
 
+/* 明示的なファイル選択ボタン */
+selectBtn.addEventListener('click', ()=> {
+  // ファイル選択ダイアログを開く
+  fileInput.click();
+});
+openFolderBtn.addEventListener('click', ()=> {
+  // 同じくダイアログを開く。用途に応じて別挙動を割り当て可能
+  fileInput.click();
+});
+
+/* input の change でファイルを受け取る */
 fileInput.addEventListener('change', ()=> {
   if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]);
 });
