@@ -11,23 +11,18 @@
     <h1>動画をアップロード</h1>
 
     <form id="uploadForm" class="card" autocomplete="off" novalidate>
-      <label for="videoInput" class="label">ファイルを選択</label>
-      <input
-        id="videoInput"
-        type="file"
-        accept="video/*"
-        aria-label="動画ファイルを選択"
-      />
+      <label for="videoInput" class="label">ファイルを選択またはドラッグ＆ドロップ</label>
+      <input id="videoInput" type="file" accept="video/*" />
+
+      <div id="dropZone" class="drop-zone">
+        ここに動画ファイルをドラッグ＆ドロップ
+      </div>
 
       <div class="actions">
         <button type="button" id="openPlayerBtn" class="btn primary">
           プレイヤーで開く
         </button>
       </div>
-
-      <p class="hint">
-        端末の動画ファイルを選択すると、新しいページで再生できます（サーバーに保存はされません）。
-      </p>
     </form>
   </main>
 
