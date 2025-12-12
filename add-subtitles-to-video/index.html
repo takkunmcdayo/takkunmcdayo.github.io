@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Video + Subtitles</title>
+<style>
+  body{font-family:system-ui;padding:16px}
+  #player,video{width:100%;max-width:900px;height:500px;background:#000}
+  .caption{position:relative}
+  .overlay{position:absolute;left:0;right:0;bottom:10%;text-align:center;color:#fff;
+    text-shadow:0 2px 6px rgba(0,0,0,.8);font-size:18px;padding:0 10px}
+</style>
+</head>
+<body>
+<h3>動画URLまたはファイルに字幕を追加</h3>
+
+<label>YouTube URL: <input id="ytUrl" placeholder="https://www.youtube.com/watch?v=..." style="width:60%"></label>
+<button id="loadYt">Load YouTube</button>
+<br><br>
+<label>ローカル動画ファイル: <input id="fileVideo" type="file" accept="video/*"></label>
+<br><br>
+<label>字幕ファイル (.vtt/.srt): <input id="fileSub" type="file" accept=".vtt,.srt,text/vtt"></label>
+<label>または字幕URL: <input id="subUrl" style="width:50%"></label>
+<button id="applySub">Apply Subtitles</button>
+
+<div id="container" style="margin-top:16px">
+  <div id="playerWrap" class="caption"></div>
+</div>
+
+<script>
+/* シンプル実装：YouTubeはiframe、ローカルは<video>。字幕はWebVTTに変換してオーバーレイ表示 */
+let ytPlayer=null, videoEl=null, cues=[];
+function createYouTube(id){
+  document.getElementById('playerWrap').innerHTML = '<div id="player"></div><div class="overlay" id="overlay"></div>';
+  const tag = document.createElement('script');
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(tag);
+  window.onYouTubeIframeAPIReady = () => {
+    ytPlayer = new YT.Player('player',{height:'500',width:'100%',videoId:id,events:{onStateChange:()=>{}}});
+    startTicker(()=> ytPlayer.getCurrentTime());
+  };
+}
+function createLocalVideo(file){
+  const url = URL.createObjectURL(file);
+  document.getElementById('playerWrap').innerHTML = `<video id="local" controls crossorigin="anonymous"><source src="${url}"></video><div class="overlay" id="overlay"></div>`;
+  videoEl = document.getElementById('local');
+  startTicker(()=> videoEl.currentTime);
+}
+function startTicker(getTime){
+  clearInterval(window._tick);
+  window._tick = setInterval(()=>{
+    const t = getTime();
+    const ov = document.getElementById('overlay');
+    const c = cues.find(x=> t>=x.start && t<=x.end);
+    ov.textContent = c ? c.text : '';
+  },200);
+}
+function parseVTT(text){
+  // 簡易パーサ：hh:mm:ss.mmm --> seconds
+  const lines = text.replace(/\r/g,'').split('\n');
+  const out=[];
+  for(let i=0;i<lines.length;i++){
+    const l = lines[i];
+    const m = l.match(/(\d{2}:\d{2}:\d{2}\.\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}\.\d{3})/);
+    if(m){
+      const start = toSec(m[1]), end = toSec(m[2]);
+      let textLine = '';
+      i++;
+      while(i<lines.length && lines[i].trim()!==''){ textLine += (textLine?'\n':'')+lines[i]; i++; }
+      out.push({start,end,text:textLine});
+    }
+  }
+  return out;
+}
+function toSec(hms){ const p=hms.split(':'); return (+p[0])*3600+(+p[1])*60+(+p[2]); }
+
+document.getElementById('loadYt').onclick = ()=>{
+  const url = document.getElementById('ytUrl').value;
+  const m = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?&]+)/);
+  if(m) createYouTube(m[1]);
+  else alert('YouTube URLを入力してください');
+};
+document.getElementById('fileVideo').onchange = e=> createLocalVideo(e.target.files[0]);
+
+document.getElementById('applySub').onclick = async ()=>{
+  const f = document.getElementById('fileSub').files[0];
+  let text = '';
+  if(f){ text = await f.text(); }
+  else if(document.getElementById('subUrl').value){
+    const res = await fetch(document.getElementById('subUrl').value);
+    text = await res.text();
+  } else { alert('字幕ファイルかURLを指定してください'); return; }
+  // srt -> vtt minimal conversion
+  if(text.indexOf('-->')>-1 && text.indexOf('WEBVTT')===-1) text = 'WEBVTT\n\n'+text.replace(/(\d+):(\d{2}):(\d{2}),/g,'$1:$2:$3.');
+  cues = parseVTT(text);
+};
+</script>
+</body>
+</html>
