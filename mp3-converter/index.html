@@ -33,10 +33,26 @@
       </div>
 
       <div class="progress-area" aria-live="polite">
+        <!-- アップロード（読み込み）用 -->
         <div class="progress-row">
+          <div style="width:100px;font-size:13px;color:#666">読み込み</div>
+          <div class="progress-bar" id="uploadBar"><div id="uploadFill"></div></div>
+          <div id="uploadText">0%</div>
+        </div>
+
+        <!-- 変換用 -->
+        <div class="progress-row" style="margin-top:8px">
+          <div style="width:100px;font-size:13px;color:#666">変換</div>
           <div class="progress-bar" id="progressBar"><div id="progressFill"></div></div>
           <div id="progressText">待機中</div>
         </div>
+
+        <!-- ステージと ETA -->
+        <div style="margin-top:8px;display:flex;gap:12px;align-items:center">
+          <div id="stageText" style="color:#666">ステージ: 待機中</div>
+          <div id="etaText" style="color:#666">ETA: -</div>
+        </div>
+
         <pre id="log" class="log" hidden></pre>
       </div>
 
