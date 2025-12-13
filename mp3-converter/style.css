@@ -1,0 +1,62 @@
+:root{
+  --bg:#f7f8fb;
+  --card:#ffffff;
+  --accent:#0066cc;
+  --danger:#d9534f;
+  --muted:#666;
+}
+*{box-sizing:border-box}
+body{
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  background:var(--bg);
+  color:#111;
+  margin:0;
+  padding:24px;
+}
+.container{
+  max-width:820px;
+  margin:0 auto;
+  background:var(--card);
+  padding:24px;
+  border-radius:10px;
+  box-shadow:0 6px 24px rgba(20,30,50,0.06);
+}
+h1{margin-top:0}
+.dropzone{
+  border:2px dashed #d6dbe6;
+  padding:28px;
+  border-radius:8px;
+  text-align:center;
+  background:linear-gradient(180deg, rgba(0,0,0,0.01), transparent);
+  position:relative;
+}
+.dropzone input[type=file]{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  cursor:pointer;
+}
+.controls{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+.controls label{font-size:14px;color:var(--muted)}
+.controls select, .controls input[type=number]{
+  padding:6px 8px;
+  border-radius:6px;
+  border:1px solid #d6dbe6;
+}
+button{padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
+button.primary{background:var(--accent);color:#fff}
+button.danger{background:var(--danger);color:#fff}
+.progress-area{margin-top:16px}
+.progress-bar{height:12px;background:#eef2f7;border-radius:8px;overflow:hidden}
+#progressFill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#00aaff)}
+.progress-row{display:flex;gap:12px;align-items:center}
+#progressText{min-width:120px;font-size:13px;color:var(--muted)}
+.log{background:#0b1220;color:#cfefff;padding:8px;border-radius:6px;max-height:160px;overflow:auto}
+.download{display:inline-block;margin-top:12px;padding:10px 14px;background:#0b8a3e;color:#fff;border-radius:8px;text-decoration:none}
+footer{margin-top:18px;color:var(--muted)}
