@@ -17,6 +17,9 @@ const downloadLink = document.getElementById('downloadLink');
 const bitrateSelect = document.getElementById('bitrate');
 const maxSizeInput = document.getElementById('maxSize');
 
+const previewArea = document.getElementById('previewArea');
+const videoPreview = document.getElementById('videoPreview');
+
 let ffmpeg = null;
 let currentFile = null;
 let isConverting = false;
@@ -24,7 +27,6 @@ let aborted = false;
 let conversionStartTime = null;
 let lastRatio = 0;
 
-// 推奨: 同一オリジンに core を置く場合のパス
 const CORE_PATH = './ffmpeg-core/ffmpeg-core.js';
 
 function log(msg){
@@ -48,21 +50,15 @@ function setETA(seconds){
 
 async function ensureFFmpeg(){
   if(ffmpeg) return ffmpeg;
-  ffmpeg = createFFmpeg({
-    log: true,
-    corePath: CORE_PATH
-  });
+  ffmpeg = createFFmpeg({ log: true, corePath: CORE_PATH });
 
   ffmpeg.setProgress(({ ratio }) => {
-    // ratio: 0..1
     const pct = Math.min(1, Math.max(0, ratio));
     progressFill.style.width = `${(pct*100).toFixed(1)}%`;
     progressText.textContent = `${(pct*100).toFixed(1)}%`;
-
-    // ETA 推定
     if(conversionStartTime){
       const now = Date.now();
-      const elapsed = (now - conversionStartTime) / 1000; // 秒
+      const elapsed = (now - conversionStartTime) / 1000;
       if(pct > 0.001 && pct > lastRatio){
         const estimatedTotal = elapsed / pct;
         const remaining = Math.max(0, estimatedTotal - elapsed);
@@ -137,26 +133,50 @@ function humanFileSize(bytes){
 });
 dropzone.addEventListener('drop', e=>{
   const f = e.dataTransfer.files[0];
-  if(f) handleFileSelected(f);
+  if(f) handleFileSelected(f, { autoStart: true });
 });
 fileInput.addEventListener('change', e=>{
   const f = e.target.files[0];
-  if(f) handleFileSelected(f);
+  if(f) handleFileSelected(f, { autoStart: true });
 });
 
-function handleFileSelected(file){
+// handleFileSelected: プレビュー表示して自動で変換開始（オプション）
+function handleFileSelected(file, { autoStart = false } = {}){
   currentFile = file;
   droptext.textContent = `${file.name} (${humanFileSize(file.size)}) が選択されました`;
   downloadLink.hidden = true;
   logEl.hidden = true;
   logEl.textContent = '';
-  // reset upload bar
-  uploadFill.style.width = '0%';
-  uploadText.textContent = '0%';
+
+  // プレビュー生成
+  try {
+    const url = URL.createObjectURL(file);
+    videoPreview.src = url;
+    videoPreview.load();
+    previewArea.style.display = 'block';
+    // 自動再生はブラウザポリシーでブロックされる場合があるため、mutedで試す
+    videoPreview.muted = true;
+    videoPreview.play().catch(()=>{ /* 自動再生不可なら無視 */ });
+  } catch (e) {
+    console.warn('プレビュー生成に失敗しました', e);
+  }
+
   setStage('ファイル選択済み');
   setETA(-1);
+
+  // 自動開始フロー
+  if(autoStart){
+    // 少し待ってUIが更新されるようにする（キャンセル可能）
+    setTimeout(() => {
+      // 再チェック（ユーザーがキャンセルしていないか）
+      if(!currentFile) return;
+      // convertBtn のクリック処理を呼ぶ代わりに startConversion を直接呼ぶ
+      startConversion();
+    }, 600); // 0.6秒の猶予
+  }
 }
 
+// キャンセル処理
 cancelBtn.addEventListener('click', () => {
   if(!isConverting) return;
   aborted = true;
@@ -169,7 +189,10 @@ cancelBtn.addEventListener('click', () => {
   }
 });
 
-convertBtn.addEventListener('click', async () => {
+// convertBtn は手動開始用（自動開始と同じ処理を呼ぶ）
+convertBtn.addEventListener('click', startConversion);
+
+async function startConversion(){
   if(!currentFile) return alert('ファイルを選択してください');
   const maxMB = Number(maxSizeInput.value) || 200;
   if(currentFile.size > maxMB * 1024 * 1024){
@@ -206,7 +229,6 @@ convertBtn.addEventListener('click', async () => {
     const outName = 'output.mp3';
     setStage('ファイルを仮想FSへ書き込み');
     progressText.textContent = 'ファイル書き込み中...';
-    // writeFile は同期的に動くため大きいと時間がかかる。ここでは進捗は FileReader 側で表示済み。
     ffmpeg.FS('writeFile', inName, new Uint8Array(arrayBuffer));
 
     if(aborted){
@@ -222,7 +244,6 @@ convertBtn.addEventListener('click', async () => {
     conversionStartTime = Date.now();
     lastRatio = 0;
 
-    // 実行
     await ffmpeg.run('-i', inName, '-vn', '-acodec', 'libmp3lame', '-b:a', bitrate, outName);
 
     if(aborted){
@@ -256,7 +277,7 @@ convertBtn.addEventListener('click', async () => {
   } finally {
     resetUI();
   }
-});
+}
 
 // FileReader で読み込み進捗を取得するユーティリティ
 function readFileWithProgress(file, onProgress){
