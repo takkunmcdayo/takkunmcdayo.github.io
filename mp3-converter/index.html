@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MP4 → MP3 Converter</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>MP4 → MP3 Converter</h1>
+
+    <section class="uploader">
+      <div id="dropzone" class="dropzone">
+        <p id="droptext">ここにファイルをドラッグ＆ドロップするか、クリックして選択</p>
+        <input id="fileInput" type="file" accept="video/*" />
+      </div>
+
+      <div class="controls">
+        <label for="bitrate">ビットレート</label>
+        <select id="bitrate">
+          <option value="128k">128 kbps</option>
+          <option value="192k" selected>192 kbps</option>
+          <option value="256k">256 kbps</option>
+          <option value="320k">320 kbps</option>
+        </select>
+
+        <label for="maxSize">ファイル上限</label>
+        <input id="maxSize" type="number" value="200" min="10" step="10"> <span>MB</span>
+
+        <button id="convertBtn" class="primary">変換開始</button>
+        <button id="cancelBtn" class="danger" disabled>キャンセル</button>
+      </div>
+
+      <div class="progress-area" aria-live="polite">
+        <div class="progress-row">
+          <div class="progress-bar" id="progressBar"><div id="progressFill"></div></div>
+          <div id="progressText">待機中</div>
+        </div>
+        <pre id="log" class="log" hidden></pre>
+      </div>
+
+      <a id="downloadLink" class="download" hidden>ダウンロード MP3</a>
+    </section>
+
+    <footer>
+      <small>変換はブラウザ内で行われます。大きなファイルは時間がかかります。</small>
+    </footer>
+  </main>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
