@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Video Player</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>動画プレイヤー</h1>
+
+    <label for="videoUrl">動画のURLを入力してください</label>
+    <input id="videoUrl" type="text" placeholder="例: https://youtu.be/xxxx または https://example.com/video.mp4" />
+
+    <div class="controls">
+      <button id="loadBtn">読み込む</button>
+      <button id="clearBtn">クリア</button>
+    </div>
+
+    <div id="playerWrap" class="player-wrap">
+      <!-- iframe または video 要素がここに挿入される -->
+    </div>
+
+    <p class="note">対応: YouTube, Vimeo, 直接MP4など（CORS制約に注意）</p>
+  </main>
+
+  <script>
+    const loadBtn = document.getElementById('loadBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const urlInput = document.getElementById('videoUrl');
+    const playerWrap = document.getElementById('playerWrap');
+
+    function clearPlayer() {
+      playerWrap.innerHTML = '';
+    }
+
+    function createYouTubeEmbed(id) {
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://www.youtube.com/embed/${id}`;
+      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+      iframe.allowFullscreen = true;
+      iframe.loading = 'lazy';
+      iframe.className = 'responsive-iframe';
+      return iframe;
+    }
+
+    function createVimeoEmbed(id) {
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://player.vimeo.com/video/${id}`;
+      iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+      iframe.allowFullscreen = true;
+      iframe.loading = 'lazy';
+      iframe.className = 'responsive-iframe';
+      return iframe;
+    }
+
+    function createVideoTag(src) {
+      const video = document.createElement('video');
+      video.src = src;
+      video.controls = true;
+      video.className = 'responsive-video';
+      video.preload = 'metadata';
+      return video;
+    }
+
+    function parseYouTubeId(url) {
+      // 短縮 youtu.be や watch?v=、embed/ に対応
+      try {
+        const u = new URL(url);
+        if (u.hostname.includes('youtu.be')) {
+          return u.pathname.slice(1);
+        }
+        if (u.hostname.includes('youtube.com')) {
+          if (u.pathname.startsWith('/watch')) return u.searchParams.get('v');
+          if (u.pathname.startsWith('/embed/')) return u.pathname.split('/embed/')[1];
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    function parseVimeoId(url) {
+      try {
+        const u = new URL(url);
+        if (u.hostname.includes('vimeo.com')) {
+          // vimeo.com/12345678 or player.vimeo.com/video/12345678
+          const parts = u.pathname.split('/').filter(Boolean);
+          return parts[parts.length - 1];
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    function isDirectVideo(url) {
+      // 拡張子で判定（必要なら拡張）
+      return /\.(mp4|webm|ogg|m3u8)(\?.*)?$/i.test(url);
+    }
+
+    loadBtn.addEventListener('click', () => {
+      const url = urlInput.value.trim();
+      if (!url) return;
+
+      clearPlayer();
+
+      // YouTube
+      const yt = parseYouTubeId(url);
+      if (yt) {
+        playerWrap.appendChild(createYouTubeEmbed(yt));
+        return;
+      }
+
+      // Vimeo
+      const vm = parseVimeoId(url);
+      if (vm) {
+        playerWrap.appendChild(createVimeoEmbed(vm));
+        return;
+      }
+
+      // 直接動画ファイル
+      if (isDirectVideo(url)) {
+        playerWrap.appendChild(createVideoTag(url));
+        return;
+      }
+
+      // 汎用: iframe埋め込みを試みる（外部サイトの埋め込みページなど）
+      try {
+        const iframe = document.createElement('iframe');
+        iframe.src = url;
+        iframe.className = 'responsive-iframe';
+        iframe.allowFullscreen = true;
+        playerWrap.appendChild(iframe);
+      } catch (e) {
+        playerWrap.textContent = 'このURLはサポートされていないか、埋め込みできません。';
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      urlInput.value = '';
+      clearPlayer();
+    });
+
+    // Enterで読み込み
+    urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') loadBtn.click();
+    });
+  </script>
+</body>
+</html>
